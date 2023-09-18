@@ -1,5 +1,6 @@
 'use client';
-
+import { uploadFile } from '@/repository/api';
+import { useMutation } from '@tanstack/react-query';
 type Form = {
   imageFile: FileList;
 };
@@ -7,8 +8,14 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 export default function ImageForm() {
   const { register, handleSubmit } = useForm<Form>();
 
-  const onSubmit: SubmitHandler<Form> = ({ imageFile }) => {
-    // TODO: Upload image
+  const { mutateAsync, isLoading } = useMutation({
+    mutationFn: uploadFile,
+  });
+
+  const onSubmit: SubmitHandler<Form> = async ({ imageFile }) => {
+    try {
+      const data = await mutateAsync(imageFile[0]);
+    } catch (error) {}
   };
 
   return (
@@ -24,6 +31,7 @@ export default function ImageForm() {
       </fieldset>
       <button
         type='submit'
+        disabled={isLoading}
         className='bg-white text-black rounded-sm py-1 px-4 mt-2'
       >
         Upload image
