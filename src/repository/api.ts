@@ -13,3 +13,8 @@ export async function uploadFile(image: File) {
   );
   return response.data;
 }
+
+export async function getImages() {
+  const response = await api.get<string[]>('/image');
+  return response.data;
+}
