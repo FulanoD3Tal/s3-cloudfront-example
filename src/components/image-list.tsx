@@ -14,10 +14,16 @@ export default function ImageList() {
       >
         My images{' '}
       </h2>
-      <ul>
+      <ul className='grid grid-cols-3 gap-2'>
         {isLoading && <span>loading images...</span>}
         {data?.map((img) => (
-          <li key={`img-${img}`}>{img}</li>
+          <li key={`img-${img}`} className='h-[450px]'>
+            <img
+              src={img}
+              alt={img}
+              className='w-full h-full object-cover rounded-sm hover:scale-95 transition-all'
+            />
+          </li>
         ))}
       </ul>
     </>
