@@ -6,15 +6,16 @@ type Form = {
 };
 import { SubmitHandler, useForm } from 'react-hook-form';
 export default function ImageForm() {
-  const { register, handleSubmit } = useForm<Form>();
+  const { register, handleSubmit, reset } = useForm<Form>();
 
-  const { mutateAsync, isLoading } = useMutation({
+  const { mutateAsync, isLoading, isSuccess } = useMutation({
     mutationFn: uploadFile,
   });
 
   const onSubmit: SubmitHandler<Form> = async ({ imageFile }) => {
     try {
-      const data = await mutateAsync(imageFile[0]);
+      await mutateAsync(imageFile[0]);
+      reset({ imageFile: undefined });
     } catch (error) {}
   };
 
@@ -28,13 +29,14 @@ export default function ImageForm() {
           accept='image/png'
           {...register('imageFile', { required: true })}
         />
+        <span>{isSuccess && 'Image uploaded'}</span>
       </fieldset>
       <button
         type='submit'
         disabled={isLoading}
         className='bg-white text-black rounded-sm py-1 px-4 mt-2'
       >
-        Upload image
+        {isLoading ? 'Uploading...' : 'Upload image'}
       </button>
     </form>
   );
