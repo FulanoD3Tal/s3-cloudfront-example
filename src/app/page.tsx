@@ -1,5 +1,5 @@
 import ImageForm from '@/components/image-form';
-import Image from 'next/image';
+import ImageList from '@/components/image-list';
 
 export default function Home() {
   return (
@@ -10,8 +10,7 @@ export default function Home() {
         <hr className='flex w-1/2 my-4' />
       </section>
       <section>
-        <h2 className='text-3xl font-bold mb-4'>My images</h2>
-        {/* TODO: Add image list */}
+        <ImageList />
       </section>
     </main>
   );

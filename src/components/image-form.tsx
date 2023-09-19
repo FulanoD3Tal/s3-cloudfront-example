@@ -1,6 +1,6 @@
 'use client';
 import { uploadFile } from '@/repository/api';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 type Form = {
   imageFile: FileList;
 };
@@ -12,10 +12,20 @@ export default function ImageForm() {
     mutationFn: uploadFile,
   });
 
+  const queryClient = useQueryClient();
+
   const onSubmit: SubmitHandler<Form> = async ({ imageFile }) => {
     try {
-      await mutateAsync(imageFile[0]);
-      reset({ imageFile: undefined });
+      await mutateAsync(imageFile[0], {
+        onSuccess(_data, _variables, _context) {
+          queryClient.invalidateQueries({
+            queryKey: ['images'],
+          });
+        },
+        onSettled(_data, _error, _variables, _context) {
+          reset({ imageFile: undefined });
+        },
+      });
     } catch (error) {}
   };
 
