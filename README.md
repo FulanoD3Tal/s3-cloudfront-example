@@ -1,34 +1,130 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next image porfolio
 
-## Getting Started
+Demo of how to use `s3 bucket` with `cloudfront` to deliver fast and cache image response
 
-First, run the development server:
+## Configuration
+
+create a `.env`or `.env.local`file in the root folder
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+# The name of the bucket
+BUCKET_NAME=
+#the aws region
+AWS_REGION=
+#the cloudfront domain
+CDN_URL=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This example use `terraform` to create the `AWS resources` so if you want it, you fill the .env variables with the output from the `apply` command
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Frontend
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+The front end is a `Next.js` application
 
-## Learn More
+```tsx
+export default function Home() {
+  return (
+    <main className='p-24'>
+      <section className='mb-8'>
+        <h1 className='text-3xl font-bold mb-4'>Image portfolio</h1>
+        //The form to upload files
+        <ImageForm />
+        <hr className='flex w-1/2 my-4' />
+      </section>
+      <section>
+        //A list with the images
+        <ImageList />
+      </section>
+    </main>
+  );
+}
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Backend
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+With the `api route handler` of `Next.js` we create and api in order to avoid to use `s3 command` from the web browser
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```markdown
+.
+├── app
+│ ├── api
+│ │ ├── image
+│ │ │ └── route.ts (+)
+│ │ └── upload-image
+│ │ └── route.ts (+)
+...
+```
 
-## Deploy on Vercel
+### AWS SDK
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+In order to upload and list files from a `s3 bucket` we need the `AWS SDK Version 3`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+In the file `/src/repository/s3.ts` is the abstraction in order to use the library
+
+```ts
+import {
+  S3Client,
+  PutObjectCommand,
+  PutObjectCommandInput,
+  PutObjectCommandOutput,
+  ListObjectsV2Command,
+  ListObjectsV2CommandInput,
+  ListObjectsV2CommandOutput,
+} from '@aws-sdk/client-s3';
+
+// Creating the client
+const client = new S3Client({ region: process.env.AWS_REGION });
+
+// Upload a file
+export async function uploadFile(command: PutObjectCommandInput) {
+  const response: PutObjectCommandOutput = await client.send(
+    new PutObjectCommand(command)
+  );
+  return response;
+}
+// Get a list of element
+export async function listFiles(command: ListObjectsV2CommandInput) {
+  const response: ListObjectsV2CommandOutput = await client.send(
+    new ListObjectsV2Command(command)
+  );
+  return response;
+}
+```
+
+## The cloudfront resource
+
+```hcl
+resource "aws_cloudfront_distribution" "cloudfront" {
+  enabled = true
+  origin {
+    # Here is where we connect the s3 with the cloudfront
+    domain_name = aws_s3_bucket.s3.bucket_domain_name
+    origin_id   = aws_s3_bucket.s3.bucket
+    origin_shield {
+      enabled              = true
+      origin_shield_region = var.aws_region
+    }
+  }
+  default_cache_behavior {
+    target_origin_id       = aws_s3_bucket.s3.bucket
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    # use a recommended cache policy when using the console
+    cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  price_class = "PriceClass_200"
+}
+```
