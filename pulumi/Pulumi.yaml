@@ -1,0 +1,3 @@
+name: s3-cloudfront-example
+runtime: nodejs
+description: An s3 bucket as backend served with cloudfront
